@@ -1,0 +1,59 @@
+# ==============================================================================
+# Node.js / TypeScript Strict .gitignore
+# ==============================================================================
+
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build Outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+# (Catatan: .env.example dibiarkan untuk tidak di-ignore agar bisa di-commit)
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Prisma & Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.vimrc
+
+# Caches
+.npm
+.eslintcache
+
+# Misc Runtime Data
+pids/
+*.pid
+*.seed
+*.pid.lock
