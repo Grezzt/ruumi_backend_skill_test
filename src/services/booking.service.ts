@@ -93,7 +93,6 @@ export class BookingService {
     }
 
     // --- OPTIMISTIC LOCKING: CONCURRENCY GUARD ---
-    // Instead of doing `.update()`, we use our repository's atomic updateMany which checks the version.
     const success = await bookingRepo.updateStatusWithLock(id, request.version, status);
 
     if (!success) {
