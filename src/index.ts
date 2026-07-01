@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import bookingRoutes from "./routes/booking.routes";
+import "./workers/email.worker";
 
 dotenv.config();
 

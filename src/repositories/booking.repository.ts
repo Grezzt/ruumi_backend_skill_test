@@ -9,7 +9,7 @@ export class BookingRepository {
 
   async findMany(filters: any, page: number, limit: number) {
     const skip = (page - 1) * limit;
-    
+
     const [data, total] = await Promise.all([
       this.prisma.bookingRequest.findMany({
         where: filters,
@@ -37,14 +37,14 @@ export class BookingRepository {
       where: {
         id,
         version: currentVersion,
-        status: 'PENDING' // Pastikan hanya data yang PENDING yang bisa diubah
+        status: 'PENDING' // Hanya data yang PENDING yang bisa diubah
       },
       data: {
         status: newStatus,
         version: { increment: 1 } // Mutasi versi secara atomic
       }
     });
-    
+
     return result.count > 0; // Jika 0, berarti terjadi race condition atau sudah diubah
   }
 }

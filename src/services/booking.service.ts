@@ -1,14 +1,15 @@
 import { BookingStatus } from '@prisma/client';
 import { BookingRepository } from '../repositories/booking.repository';
 import { prisma } from '../utils/db';
+import { sendEmailJob } from '../workers/email.queue';
 
 const bookingRepo = new BookingRepository(prisma);
 
 export class BookingService {
-  
+
   static async getBookingRequests(user: { id: string; role: 'TENANT' | 'LANDLORD' }, status?: BookingStatus, page: number = 1, limit: number = 10) {
     const filters: any = {};
-    
+
     // Authorization filter
     if (user.role === 'TENANT') {
       filters.tenantId = user.id;
@@ -22,7 +23,7 @@ export class BookingService {
     }
 
     const { data, total } = await bookingRepo.findMany(filters, page, limit);
-    
+
     return {
       data,
       meta: {
@@ -58,8 +59,12 @@ export class BookingService {
     });
 
     // TODO: Add to BullMQ Delayed Queue for expiration (Phase 5)
-    // TODO: Add to BullMQ Email Queue for landlord notification (Phase 4)
-    
+    await sendEmailJob(
+      payload.tenantEmail,
+      'Booking Request Submitted',
+      `<p>Hi ${payload.tenantName},</p><p>Permintaan sewa Anda untuk properti <b>${property.name}</b> telah masuk. Landlord memiliki waktu 24 jam untuk merespons.</p>`
+    );
+
     return booking;
   }
 
@@ -88,12 +93,16 @@ export class BookingService {
     // --- OPTIMISTIC LOCKING: CONCURRENCY GUARD ---
     // Instead of doing `.update()`, we use our repository's atomic updateMany which checks the version.
     const success = await bookingRepo.updateStatusWithLock(id, request.version, status);
-    
+
     if (!success) {
       throw { code: 409, type: 'ERR_CONFLICT', message: 'Data conflict: The request has already been modified by another process' };
     }
 
-    // TODO: Add to BullMQ Email Queue for tenant notification (Phase 4)
+    await sendEmailJob(
+      request.tenantEmail,
+      `Booking Request ${status}`,
+      `<p>Hi ${request.tenantName},</p><p>Status permintaan sewa Anda saat ini adalah: <b>${status}</b>.</p>`
+    );
 
     return { id, status };
   }
