@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPT
+  REJECT
+  EXPIRED
+}
+
+model Property {
+  id              String           @id @default(uuid())
+  name            String
+  landlordId      String
+  bookingRequests BookingRequest[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model BookingRequest {
+  id                 String        @id @default(uuid())
+  propertyId         String
+  tenantId           String
+  landlordId         String
+  tenantName         String
+  tenantEmail        String
+  requestedViewingAt DateTime
+  status             BookingStatus @default(PENDING)
+  expiresAt          DateTime
+  version            Int           @default(1)
+  
+  property           Property      @relation(fields: [propertyId], references: [id])
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
