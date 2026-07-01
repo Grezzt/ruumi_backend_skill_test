@@ -1,12 +1,20 @@
 # Ruumi Property Rental - Backend Skill Test
 
-## 🚀 Preparation & Running the Project Locally
+## Live Production / Demo
+
+- **Base API URL:** `https://backend-services-ruumi-test-production.up.railway.app`
+- **Swagger Documentation:** `https://backend-services-ruumi-test-production.up.railway.app/api-docs`
+- **Postman API Workspace:** `https://go.postman.co/workspace/41fc6fc0-6a86-4367-97a6-132de0206339`
+
+---
+
+## Preparation & Running the Project Locally
 
 This project is built using Node.js (Express), TypeScript, Prisma ORM, PostgreSQL, Redis, and BullMQ.
 
 ### Prerequisites
 
-1. **Node.js** (v18+)
+1. **Node.js** (v20+)
 2. **Docker Desktop** (to run PostgreSQL and Redis)
 
 ### Execution Steps
@@ -105,8 +113,8 @@ When the POST API successfully creates a booking, I immediately schedule a job t
 
 ### 3. Reliable Asynchronous Emailing: Background Queue Email (_Fault Tolerance_)
 
-I use a separate dedicated queue to handle message delivery (Brevo SMTP via Nodemailer).
-With `BullMQ`, the API Controller is able to execute an `HTTP 201 response` to the user in a matter of milliseconds because it merely passes the email payload to Redis. The `email.worker` will then execute the TCP connection to the external mail network. If the Brevo SMTP is down, BullMQ is configured to perform **3 exponential retries** (_Exponential Backoff Retry_), which guarantees system resiliency (_Fault Tolerance_).
+I use a separate dedicated queue to handle message delivery (Bypass Cloud SMTP Blocking via **Brevo REST API v3** using native `fetch`).
+With `BullMQ`, the API Controller is able to execute an `HTTP 201 response` to the user in a matter of milliseconds because it merely passes the email payload to Redis. The `email.worker` then executes a pure secure HTTPS call to the external mail network. This HTTP API strategy ensures emails are always successfully delivered even if the cloud server explicitly blocks standard SMTP ports (such as port 587/465). If the Brevo API server is down, BullMQ is configured to perform **3 exponential retries** (_Exponential Backoff Retry_), which guarantees system resiliency (_Fault Tolerance_).
 
 ---
 

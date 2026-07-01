@@ -1,12 +1,20 @@
 # Ruumi Property Rental - Backend Skill Test
 
-## 🚀 Persiapan & Menjalankan Proyek Secara Lokal
+## Live Production / Demo
+
+- **Base API URL:** `https://backend-services-ruumi-test-production.up.railway.app`
+- **Swagger Documentation:** `https://backend-services-ruumi-test-production.up.railway.app/api-docs`
+- **Postman API Workspace:** `https://go.postman.co/workspace/41fc6fc0-6a86-4367-97a6-132de0206339`
+
+---
+
+## Persiapan & Menjalankan Proyek Secara Lokal
 
 Proyek ini dibangun menggunakan Node.js (Express), TypeScript, Prisma ORM, PostgreSQL, Redis, dan BullMQ.
 
 ### Prasyarat
 
-1. **Node.js** (v18+)
+1. **Node.js** (v20+)
 2. **Docker Desktop** (untuk menjalankan PostgreSQL dan Redis)
 
 ### Langkah-Langkah Eksekusi
@@ -105,8 +113,8 @@ Saat API POST berhasil menciptakan pesanan, saya langsung menjadwalkan pekerjaan
 
 ### 3. Reliable Asynchronous Emailing: Background Queue Email (_Fault Tolerance_)
 
-Saya menggunakan antrean terpisah khusus untuk menangani pengiriman pesan (Brevo SMTP via Nodemailer).
-Dengan `BullMQ`, API Controller mampu mengeksekusi _response HTTP 201_ kepada pengguna dalam hitungan milidetik, karena ia hanya sekadar meng-oper muatan (_payload_) surat kepada Redis. _email.worker_ yang akan mengeksekusi koneksi TCP ke jaringan surat eksternal. Jika SMTP Brevo sedang _down_, BullMQ dikonfigurasi untuk melakukan **3 percobaan ulang secara eksponensial** (_Exponential Backoff Retry_), yang menjamin resiliensi sistem (_Fault Tolerance_).
+Saya menggunakan antrean terpisah khusus untuk menangani pengiriman pesan (Bypass Cloud SMTP Blocking via **Brevo REST API v3** menggunakan _native_ `fetch`).
+Dengan `BullMQ`, API Controller mampu mengeksekusi _response HTTP 201_ kepada pengguna dalam hitungan milidetik karena ia hanya sekadar meng-oper muatan (_payload_) surat kepada Redis. _email.worker_ kemudian mengeksekusi panggilan aman HTTPS murni ke jaringan surat eksternal. Strategi penggunaan API HTTP ini menjamin _email_ selalu berhasil terkirim meskipun peladen _cloud_ memblokir _port_ SMTP standar (seperti port 587/465). Jika peladen Brevo sedang _down_, BullMQ dikonfigurasi untuk melakukan **3 percobaan ulang secara eksponensial** (_Exponential Backoff Retry_), yang menjamin resiliensi sistem (_Fault Tolerance_).
 
 ---
 
