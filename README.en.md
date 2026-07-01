@@ -103,7 +103,53 @@ When the POST API successfully creates a booking, I immediately schedule a job t
 
 ---
 
-### 3. Challenge C: Background Queue Email (_Fault Tolerance_)
+### 3. Reliable Asynchronous Emailing: Background Queue Email (_Fault Tolerance_)
 
 I use a separate dedicated queue to handle message delivery (Brevo SMTP via Nodemailer).
 With `BullMQ`, the API Controller is able to execute an `HTTP 201 response` to the user in a matter of milliseconds because it merely passes the email payload to Redis. The `email.worker` will then execute the TCP connection to the external mail network. If the Brevo SMTP is down, BullMQ is configured to perform **3 exponential retries** (_Exponential Backoff Retry_), which guarantees system resiliency (_Fault Tolerance_).
+
+---
+
+### 4. Asynchronous Email Verification Evidence
+
+To prove that the background email processing system is working perfectly without blocking the main HTTP thread, here is the evidence:
+
+#### A. Background Worker Execution Logs
+
+Here is the actual log snippet from the server execution. This log indicates that **BullMQ** and **Nodemailer** successfully received the job queue and dispatched the email message behind the scenes:
+
+```text
+[EmailWorker] Processing email delivery to: andhika105x@gmail.com
+[EmailWorker] Email successfully sent to: andhika105x@gmail.com (MessageId: <78fc450d-be58-08ba-dc67-91ce867af244@gmail.com>)
+```
+
+_(As seen from the log, the API finishes its process in milliseconds, while the email queue worker takes over the delivery job afterwards to the Brevo SMTP network.)_
+
+#### B. Inbox Email Screenshots
+
+Here are the visual screenshots of the emails successfully delivered to the tenant's inbox for each booking condition:
+
+1. **New Request Email (PENDING)**
+   ![PENDING Email Evidence](./docs/assets/email-pending.png)
+
+2. **Approved Request Email (ACCEPT)**
+   ![ACCEPT Email Evidence](./docs/assets/email-accept.png)
+
+3. **Rejected Request Email (REJECT)**
+   ![REJECT Email Evidence](./docs/assets/email-reject.png)
+
+4. **Auto-Expired Request Email (EXPIRED)**
+   ![EXPIRED Email Evidence](./docs/assets/email-expired.png)
+
+---
+
+### 5. Additional Security: Rate Limiting & CORS
+
+To ensure the API is fully prepared for a production environment (_Production-Ready_), I also implemented two industry-standard security layers:
+
+1. **CORS (Cross-Origin Resource Sharing):**
+   Allows modern frontends (running on different domains/ports) to securely communicate with this backend without being blocked by strict browser security policies.
+2. **Rate Limiting (Anti-DDoS & Brute Force Protection):**
+   I implemented `express-rate-limit` at the main application level (`app.ts`). The system restricts the number of API calls to a maximum of **20 requests per 2 minutes** for each IP address. If this limit is exceeded, the user/bot will automatically be blocked and receive a `429 Too Many Requests` response. This is crucial to prevent server abuse (DDoS) and ensure High Availability.
+
+---

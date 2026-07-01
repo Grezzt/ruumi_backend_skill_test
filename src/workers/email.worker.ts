@@ -10,10 +10,12 @@ export const emailWorker = new Worker('email-queue', async (job: Job) => {
   const smtpUser = process.env.BREVO_SMTP_USER;
   const smtpPass = process.env.BREVO_SMTP_PASSWORD;
 
+  const smtpPort = parseInt(process.env.BREVO_SMTP_PORT || '587', 10);
+  
   const transporter = nodemailer.createTransport({
     host: process.env.BREVO_SMTP_HOST,
-    port: parseInt(process.env.BREVO_SMTP_PORT || '587', 10),
-    secure: false,
+    port: smtpPort,
+    secure: smtpPort === 465, // Use true for port 465, false for 587
     auth: {
       user: smtpUser,
       pass: smtpPass,

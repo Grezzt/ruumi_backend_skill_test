@@ -103,7 +103,53 @@ Saat API POST berhasil menciptakan pesanan, saya langsung menjadwalkan pekerjaan
 
 ---
 
-### 3. Tantangan C: Background Queue Email (_Fault Tolerance_)
+### 3. Reliable Asynchronous Emailing: Background Queue Email (_Fault Tolerance_)
 
-saya menggunakan antrean terpisah khusus untuk menangani pengiriman pesan (Brevo SMTP via Nodemailer).
+Saya menggunakan antrean terpisah khusus untuk menangani pengiriman pesan (Brevo SMTP via Nodemailer).
 Dengan `BullMQ`, API Controller mampu mengeksekusi _response HTTP 201_ kepada pengguna dalam hitungan milidetik, karena ia hanya sekadar meng-oper muatan (_payload_) surat kepada Redis. _email.worker_ yang akan mengeksekusi koneksi TCP ke jaringan surat eksternal. Jika SMTP Brevo sedang _down_, BullMQ dikonfigurasi untuk melakukan **3 percobaan ulang secara eksponensial** (_Exponential Backoff Retry_), yang menjamin resiliensi sistem (_Fault Tolerance_).
+
+---
+
+### 4. Bukti Verifikasi Asynchronous Email (_Verification Evidence_)
+
+Untuk membuktikan bahwa sistem _background processing email_ telah bekerja secara asinkron (tanpa memblokir _thread_ utama HTTP), berikut adalah buktinya:
+
+#### A. Log Eksekusi _Background Worker_
+
+Berikut adalah _log snippet_ aktual dari eksekusi server. Log ini mengindikasikan bahwa **BullMQ** dan **Nodemailer** berhasil mengambil antrean pekerjaan dan menembakkan pesan email secara mandiri di belakang layar:
+
+```text
+[EmailWorker] Processing email delivery to: andhika105x@gmail.com
+[EmailWorker] Email successfully sent to: andhika105x@gmail.com (MessageId: <78fc450d-be58-08ba-dc67-91ce867af244@gmail.com>)
+```
+
+_(Dapat dilihat dari log, API menyelesaikan prosesnya dengan cepat, sementara pekerja antrean email mengambil alih pekerjaan pengiriman setelahnya ke jaringan Brevo SMTP.)_
+
+#### B. Tangkapan Layar Bukti Email Masuk (Inboxes)
+
+Berikut adalah visual dari email yang berhasil terkirim ke kotak masuk _tenant_ berdasarkan masing-masing kondisi status pemesanan:
+
+1. **Email Permintaan Masuk (PENDING)**
+   ![Bukti Email PENDING](./docs/assets/email-pending.png)
+
+2. **Email Permintaan Disetujui (ACCEPT)**
+   ![Bukti Email ACCEPT](./docs/assets/email-accept.png)
+
+3. **Email Permintaan Ditolak (REJECT)**
+   ![Bukti Email REJECT](./docs/assets/email-reject.png)
+
+4. **Email Permintaan Kadaluwarsa otomatis (EXPIRED)**
+   ![Bukti Email EXPIRED](./docs/assets/email-expired.png)
+
+---
+
+### 5. Tambahan Keamanan: Rate Limiting & CORS
+
+Untuk memastikan API siap beroperasi di level produksi (_Production-Ready_), saya juga menambahkan dua lapisan keamanan standar industri:
+
+1. **CORS (Cross-Origin Resource Sharing):**
+   Memungkinkan _frontend_ modern (berjalan di domain/port berbeda) untuk berkomunikasi secara aman dengan _backend_ ini tanpa terblokir oleh _policy browser_.
+2. **Rate Limiting (Anti-DDoS & Brute Force):**
+   Saya mengimplementasikan `express-rate-limit` pada level aplikasi utama (`app.ts`). Sistem membatasi jumlah panggilan API maksimal **20 _requests_ per 2 menit** untuk setiap _IP Address_. Jika melebihi batas, pengguna/bot akan otomatis diblokir dengan respons `429 Too Many Requests`. Ini krusial untuk mencegah penyalahgunaan beban _server_ (DDoS) dan memastikan ketersediaan layanan (_High Availability_).
+
+---

@@ -4,8 +4,8 @@ info:
   description: API Documentation for Ruumi Property Rental System. Features include Authentication, Race Condition Guards (Optimistic Locking), and Background Jobs (BullMQ).
   version: 1.0.0
 servers:
-  - url: http://localhost:3000
-    description: Local Development Server
+  - url: /
+    description: Current Environment
 
 paths:
   /api/booking-requests:

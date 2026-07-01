@@ -14,7 +14,9 @@ import "./workers/expiration.worker";
 
 const app = express();
 
-app.use(cors()); // Enable CORS for all origins
+app.set("trust proxy", 1);
+
+app.use(cors());
 
 const limiter = rateLimit({
   windowMs: 2 * 60 * 1000, // 2 minutes

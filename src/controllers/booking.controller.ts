@@ -17,7 +17,7 @@ export class BookingController {
       return sendSuccess(res, 200, 'Booking requests retrieved', result.data, result.meta);
     } catch (error: any) {
       console.error('Error in getRequests:', error);
-      return sendError(res, error.code || 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
+      return sendError(res, typeof error.code === 'number' ? error.code : 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
     }
   }
 
@@ -26,7 +26,7 @@ export class BookingController {
       const booking = await BookingService.createBookingRequest(req.body, req.user!.id);
       return sendSuccess(res, 201, 'Booking request submitted. Expires in 24 hours.', booking);
     } catch (error: any) {
-      return sendError(res, error.code || 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
+      return sendError(res, typeof error.code === 'number' ? error.code : 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
     }
   }
 
@@ -38,7 +38,7 @@ export class BookingController {
       const result = await BookingService.processBookingRequest(id, status as BookingStatus, req.user!.id);
       return sendSuccess(res, 200, `Booking request ${status.toLowerCase()}ed successfully`, result);
     } catch (error: any) {
-      return sendError(res, error.code || 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
+      return sendError(res, typeof error.code === 'number' ? error.code : 500, error.type || 'ERR_INTERNAL', error.message || 'Internal Server Error');
     }
   }
 }
