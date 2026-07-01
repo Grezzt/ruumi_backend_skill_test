@@ -122,16 +122,16 @@ Dengan `BullMQ`, API Controller mampu mengeksekusi _response HTTP 201_ kepada pe
 
 Untuk membuktikan bahwa sistem _background processing email_ telah bekerja secara asinkron (tanpa memblokir _thread_ utama HTTP), berikut adalah buktinya:
 
-#### A. Log Eksekusi _Background Worker_
+#### A. Bukti Log Eksekusi Background Worker
 
-Berikut adalah _log snippet_ aktual dari eksekusi server. Log ini mengindikasikan bahwa **BullMQ** dan **Nodemailer** berhasil mengambil antrean pekerjaan dan menembakkan pesan email secara mandiri di belakang layar:
+Berikut adalah potongan *log* asli dari eksekusi server. Log ini menandakan bahwa **BullMQ** dan **Native Fetch API** berhasil menerima antrean pekerjaan dan memberangkatkan pesan surat di belakang layar:
 
 ```text
 [EmailWorker] Processing email delivery to: andhika105x@gmail.com
 [EmailWorker] Email successfully sent to: andhika105x@gmail.com (MessageId: <78fc450d-be58-08ba-dc67-91ce867af244@gmail.com>)
 ```
 
-_(Dapat dilihat dari log, API menyelesaikan prosesnya dengan cepat, sementara pekerja antrean email mengambil alih pekerjaan pengiriman setelahnya ke jaringan Brevo SMTP.)_
+_(Seperti yang terlihat dari log, API menyelesaikan prosesnya dalam hitungan milidetik, sementara pekerja antrean email mengambil alih pekerjaan pengiriman setelahnya menuju ke jaringan HTTP REST API Brevo.)_
 
 #### B. Tangkapan Layar Bukti Email Masuk (Inboxes)
 

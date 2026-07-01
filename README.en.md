@@ -124,14 +124,14 @@ To prove that the background email processing system is working perfectly withou
 
 #### A. Background Worker Execution Logs
 
-Here is the actual log snippet from the server execution. This log indicates that **BullMQ** and **Nodemailer** successfully received the job queue and dispatched the email message behind the scenes:
+Here is the actual log snippet from the server execution. This log indicates that **BullMQ** and **Native Fetch API** successfully received the job queue and dispatched the email message behind the scenes:
 
 ```text
 [EmailWorker] Processing email delivery to: andhika105x@gmail.com
 [EmailWorker] Email successfully sent to: andhika105x@gmail.com (MessageId: <78fc450d-be58-08ba-dc67-91ce867af244@gmail.com>)
 ```
 
-_(As seen from the log, the API finishes its process in milliseconds, while the email queue worker takes over the delivery job afterwards to the Brevo SMTP network.)_
+_(As seen from the log, the API finishes its process in milliseconds, while the email queue worker takes over the delivery job afterwards to the Brevo HTTP REST API network.)_
 
 #### B. Inbox Email Screenshots
 
