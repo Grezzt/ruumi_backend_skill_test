@@ -2,6 +2,7 @@ import { BookingStatus } from '@prisma/client';
 import { BookingRepository } from '../repositories/booking.repository';
 import { prisma } from '../utils/db';
 import { sendEmailJob } from '../workers/email.queue';
+import { scheduleExpirationJob } from '../workers/expiration.queue';
 
 const bookingRepo = new BookingRepository(prisma);
 
@@ -58,12 +59,13 @@ export class BookingService {
       expiresAt
     });
 
-    // TODO: Add to BullMQ Delayed Queue for expiration (Phase 5)
     await sendEmailJob(
       payload.tenantEmail,
       'Booking Request Submitted',
       `<p>Hi ${payload.tenantName},</p><p>Permintaan sewa Anda untuk properti <b>${property.name}</b> telah masuk. Landlord memiliki waktu 24 jam untuk merespons.</p>`
     );
+
+    await scheduleExpirationJob(booking.id, 24 * 60 * 60 * 1000);
 
     return booking;
   }
