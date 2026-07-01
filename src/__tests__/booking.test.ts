@@ -89,13 +89,13 @@ describe('Booking API & Concurrency Guard', () => {
     expect(conflictCount).toBe(2);
   });
 
-  it('PATCH /api/booking-requests/:id dengan status invalid harus mengembalikan 400', async () => {
+  it('PATCH /api/booking-requests/:id dengan status invalid harus mengembalikan 422', async () => {
     const res = await request(app)
       .patch(`/api/booking-requests/${createdBookingId}`)
       .set('x-landlord-id', landlordId)
       .send({ status: 'INVALID_STATUS' });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
   });
 
   afterAll(async () => {

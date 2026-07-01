@@ -10,12 +10,12 @@ export const sendSuccess = (res: Response, code: number, message: string, data: 
   });
 };
 
-export const sendError = (res: Response, code: number, type: string, message: string, errors: any = null) => {
+export const sendError = (res: Response, code: number, type: string, message: string, data: any = null) => {
   return res.status(code).json({
     success: false,
     code,
     type,
     message,
-    errors
+    data
   });
 };

@@ -37,16 +37,17 @@ export class BookingService {
   }
 
   static async createBookingRequest(payload: any, tenantId: string) {
-    if (!payload.propertyId || !payload.tenantName || !payload.tenantEmail || !payload.requestedViewingAt) {
-      throw { code: 400, type: 'ERR_BAD_REQUEST', message: 'Missing required fields: propertyId, tenantName, tenantEmail, requestedViewingAt' };
-    }
+
 
     const property = await prisma.property.findUnique({ where: { id: payload.propertyId } });
     if (!property) {
       throw { code: 404, type: 'ERR_NOT_FOUND', message: 'Property not found' };
     }
 
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    // Untuk keperluan testing, EXPIRATION_DELAY_MS bisa diset di .env (misal 10000 untuk 10 detik).
+    // Jika EXPIRATION_DELAY_MS tidak ada di .env, defaultnya adalah 24 jam (86400000 ms).
+    const delayMs = process.env.EXPIRATION_DELAY_MS ? parseInt(process.env.EXPIRATION_DELAY_MS, 10) : 24 * 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + delayMs);
 
     const booking = await bookingRepo.create({
       propertyId: property.id,
@@ -65,15 +66,13 @@ export class BookingService {
       `<p>Hi ${payload.tenantName},</p><p>Permintaan sewa Anda untuk properti <b>${property.name}</b> telah masuk. Landlord memiliki waktu 24 jam untuk merespons.</p>`
     );
 
-    await scheduleExpirationJob(booking.id, 24 * 60 * 60 * 1000);
+    await scheduleExpirationJob(booking.id, delayMs);
 
     return booking;
   }
 
   static async processBookingRequest(id: string, status: BookingStatus, landlordId: string) {
-    if (status !== 'ACCEPT' && status !== 'REJECT') {
-      throw { code: 400, type: 'ERR_BAD_REQUEST', message: 'Status must be either ACCEPT or REJECT' };
-    }
+
 
     const request = await bookingRepo.findById(id);
     if (!request) {

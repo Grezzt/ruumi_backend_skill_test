@@ -1,0 +1,257 @@
+openapi: 3.0.0
+info:
+  title: Ruumi Rental API (Backend Skill Test)
+  description: API Documentation for Ruumi Property Rental System. Features include Authentication, Race Condition Guards (Optimistic Locking), and Background Jobs (BullMQ).
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local Development Server
+
+paths:
+  /api/booking-requests:
+    get:
+      summary: Get all booking requests
+      description: Retrieve a paginated list of booking requests. Can be accessed by both Tenant and Landlord.
+      tags:
+        - Booking Requests
+      parameters:
+        - in: header
+          name: x-tenant-id
+          schema:
+            type: string
+          required: false
+          description: Tenant Auth Header
+          # example: tenant-test-uuid-123
+        - in: header
+          name: x-landlord-id
+          schema:
+            type: string
+          required: false
+          description: Landlord Auth Header
+          example: landlord-1
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, ACCEPT, REJECT, EXPIRED]
+          description: Filter by booking status
+      responses:
+        "200":
+          description: A paginated list of bookings
+          content:
+            application/json:
+              example:
+                success: true
+                code: 200
+                message: "Booking requests retrieved"
+                data:
+                  - id: "cm5e5kztk0000a..."
+                    propertyId: "cm5e5kzt..."
+                    tenantId: "tenant-test-uuid-123"
+                    landlordId: "landlord-test-uuid-123"
+                    status: "PENDING"
+                    tenantName: "Andhika Test"
+                    tenantEmail: "andhika@example.com"
+                    requestedViewingAt: "2026-07-02T10:00:00.000Z"
+                    expiresAt: "2026-07-02T10:00:00.000Z"
+                    version: 1
+                meta:
+                  page: 1
+                  limit: 10
+                  totalRecords: 1
+                  totalPages: 1
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    post:
+      summary: Create a booking request
+      description: Submit a new property viewing request. The request will automatically expire in 24 hours. (Requires x-tenant-id)
+      tags:
+        - Booking Requests
+      parameters:
+        - in: header
+          name: x-tenant-id
+          schema:
+            type: string
+          required: true
+          description: Tenant Auth Header
+          example: tenant-test-uuid-123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - propertyId
+                - tenantName
+                - tenantEmail
+                - requestedViewingAt
+              properties:
+                propertyId:
+                  type: string
+                  example: "f5ee6fa2-5d42-43a4-a6f2-0f46e93447df"
+                tenantName:
+                  type: string
+                  example: "Andhika Prasetyo"
+                tenantEmail:
+                  type: string
+                  example: "andhika105x@gmail.com"
+                requestedViewingAt:
+                  type: string
+                  format: date-time
+                  example: "2026-07-02T10:00:00Z"
+      responses:
+        "201":
+          description: Booking request created successfully
+          content:
+            application/json:
+              example:
+                success: true
+                code: 201
+                message: "Booking request submitted. Expires in 24 hours."
+                data:
+                  id: "cm5e5kztk0000a..."
+                  status: "PENDING"
+                  expiresAt: "2026-07-02T10:00:00Z"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Property not found
+          content:
+            application/json:
+              example:
+                success: false
+                code: 404
+                type: "ERR_NOT_FOUND"
+                message: "Property not found"
+                data: null
+
+  /api/booking-requests/{id}:
+    patch:
+      summary: Accept or Reject a booking (Tantangan A)
+      description: Process a pending booking request. Implements Optimistic Locking to guard against Race Conditions. (Requires x-landlord-id)
+      tags:
+        - Booking Requests
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The ID of the booking request
+        - in: header
+          name: x-landlord-id
+          schema:
+            type: string
+          required: true
+          description: Landlord Auth Header
+          example: landlord-1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ACCEPT, REJECT]
+                  example: "ACCEPT"
+      responses:
+        "200":
+          description: Booking successfully updated
+          content:
+            application/json:
+              example:
+                success: true
+                code: 200
+                message: "Booking request accepted successfully"
+                data:
+                  id: "cm5e5kztk0000a..."
+                  status: "ACCEPT"
+        "400":
+          description: Invalid request or booking already expired
+          content:
+            application/json:
+              example:
+                success: false
+                code: 400
+                type: "ERR_BAD_REQUEST"
+                message: "Cannot process request: current status is EXPIRED"
+                data: null
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: Concurrency Conflict (Optimistic Locking Triggered)
+          content:
+            application/json:
+              example:
+                success: false
+                code: 409
+                type: "ERR_CONFLICT"
+                message: "Data conflict: The request has already been modified by another process"
+                data: null
+
+components:
+  responses:
+    UnauthorizedError:
+      description: Missing Auth Headers
+      content:
+        application/json:
+          example:
+            success: false
+            code: 401
+            type: "ERR_UNAUTHORIZED"
+            message: "Unauthorized: Missing x-tenant-id or x-landlord-id header"
+            data: null
+    ForbiddenError:
+      description: Access denied for the current role
+      content:
+        application/json:
+          example:
+            success: false
+            code: 403
+            type: "ERR_FORBIDDEN"
+            message: "Forbidden: Only landlord can perform this action"
+            data: null
+    BadRequestError:
+      description: Invalid request parameters or state
+      content:
+        application/json:
+          example:
+            success: false
+            code: 400
+            type: "ERR_BAD_REQUEST"
+            message: "Cannot process request: current status is EXPIRED"
+            data: null
+    ValidationError:
+      description: Unprocessable Entity (Zod Validation Failed)
+      content:
+        application/json:
+          example:
+            success: false
+            code: 422
+            type: "ERR_UNPROCESSABLE_ENTITY"
+            message: "Validation failed"
+            data:
+              - field: "body.tenantEmail"
+                message: "Invalid email address format"
