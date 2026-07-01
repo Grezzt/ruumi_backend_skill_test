@@ -28,7 +28,7 @@ export class BookingRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.bookingRequest.findUnique({ where: { id } });
+    return this.prisma.bookingRequest.findUnique({ where: { id }, include: { property: true } });
   }
 
   // OPTIMISTIC LOCKING IMPLEMENTATION

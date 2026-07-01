@@ -119,6 +119,7 @@ export class BookingService {
       `<p>Hi <b>${request.tenantName}</b>,</p><p>Pemilik properti telah merespons permintaan sewa Anda. Status permintaan Anda saat ini adalah: ${statusText}.</p>`,
       {
         'ID Permintaan': request.id,
+        'Properti': request.property.name,
         'Tanggal Survey': new Date(request.requestedViewingAt).toLocaleString('id-ID'),
       }
     );
