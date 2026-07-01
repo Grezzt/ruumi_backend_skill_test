@@ -1,41 +1,49 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../utils/redis';
-import nodemailer from 'nodemailer';
 
 export const emailWorker = new Worker('email-queue', async (job: Job) => {
   const { to, subject, content } = job.data;
 
   console.log(`[EmailWorker] Processing email delivery to: ${to}`);
 
-  const smtpUser = process.env.BREVO_SMTP_USER;
-  const smtpPass = process.env.BREVO_SMTP_PASSWORD;
+  // Railway sometimes injects literal double quotes into the string if copy-pasted incorrectly. We strip them safely here.
+  const apiKey = (process.env.BREVO_API_KEY || '').replace(/^"|"$/g, '');
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL || '').replace(/^"|"$/g, '');
+  const senderName = (process.env.BREVO_SENDER_NAME || '').replace(/^"|"$/g, '');
 
-  const smtpPort = parseInt(process.env.BREVO_SMTP_PORT || '587', 10);
-  
-  const transporter = nodemailer.createTransport({
-    host: process.env.BREVO_SMTP_HOST,
-    port: smtpPort,
-    secure: smtpPort === 465, // Use true for port 465, false for 587
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
+  if (!apiKey || !senderEmail) {
+    throw new Error("Missing Brevo credentials in environment variables.");
+  }
 
-  const mailOptions = {
-    from: `"${process.env.BREVO_SENDER_NAME}" <${process.env.BREVO_SENDER_EMAIL}>`,
-    to,
-    subject,
-    html: content,
+  const payload = {
+    sender: { name: senderName || 'Ruumi Rental', email: senderEmail },
+    to: [{ email: to }],
+    subject: subject,
+    htmlContent: content,
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[EmailWorker] Email successfully sent to: ${to} (MessageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Brevo HTTP API responded with ${response.status}: ${errorData}`);
+    }
+
+    const data = await response.json();
+    console.log(`[EmailWorker] Email successfully sent to: ${to} (MessageId: ${data.messageId})`);
+    return { success: true, messageId: data.messageId };
   } catch (error: any) {
     console.error(`[EmailWorker] FAILED to send email to ${to}: ${error.message}`);
-    throw error; // Throwing error will trigger BullMQ automatic retry mechanism
+    throw error;
   }
 }, { connection: redisConnection as any });
 
