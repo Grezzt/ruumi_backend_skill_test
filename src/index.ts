@@ -1,5 +1,6 @@
-import express from 'express';
-import dotenv from 'dotenv';
+import express from "express";
+import dotenv from "dotenv";
+import bookingRoutes from "./routes/booking.routes";
 
 dotenv.config();
 
@@ -9,10 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
-});
+app.use("/api/booking-requests", bookingRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
