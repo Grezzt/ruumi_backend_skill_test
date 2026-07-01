@@ -143,7 +143,7 @@ paths:
 
   /api/booking-requests/{id}:
     patch:
-      summary: Accept or Reject a booking (Tantangan A)
+      summary: Accept or Reject a booking
       description: Process a pending booking request. Implements Optimistic Locking to guard against Race Conditions. (Requires x-landlord-id)
       tags:
         - Booking Requests

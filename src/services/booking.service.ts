@@ -45,8 +45,8 @@ export class BookingService {
       throw { code: 404, type: 'ERR_NOT_FOUND', message: 'Property not found' };
     }
 
-    // Untuk keperluan testing, EXPIRATION_DELAY_MS bisa diset di .env (misal 10000 untuk 10 detik).
-    // Jika EXPIRATION_DELAY_MS tidak ada di .env, defaultnya adalah 24 jam (86400000 ms).
+    // For testing purposes, EXPIRATION_DELAY_MS can be set in .env (eg. 10000 for 10 seconds).
+    // If EXPIRATION_DELAY_MS is not set in .env, default is 24 hours or 86400000 ms.
     const delayMs = process.env.EXPIRATION_DELAY_MS ? parseInt(process.env.EXPIRATION_DELAY_MS, 10) : 24 * 60 * 60 * 1000;
     const expiresAt = new Date(Date.now() + delayMs);
 

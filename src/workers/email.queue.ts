@@ -13,10 +13,10 @@ export const sendEmailJob = async (to: string, subject: string, content: string)
       attempts: 3, // Fault tolerance: Retry 3
       backoff: {
         type: 'exponential',
-        delay: 1000 // Jeda retry akan bertambah (1s, 2s, 4s...)
+        delay: 1000 // Retry delay will increase (1s, 2s, 4s...)
       },
       removeOnComplete: true,
-      removeOnFail: false // Simpan yang gagal untuk keperluan debugging
+      removeOnFail: false // Keep failed jobs for debugging purposes
     }
   );
 };

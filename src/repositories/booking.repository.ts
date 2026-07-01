@@ -37,14 +37,14 @@ export class BookingRepository {
       where: {
         id,
         version: currentVersion,
-        status: 'PENDING' // Hanya data yang PENDING yang bisa diubah
+        status: 'PENDING' // Only PENDING data can be modified
       },
       data: {
         status: newStatus,
-        version: { increment: 1 } // Mutasi versi secara atomic
+        version: { increment: 1 } // Atomic version mutation
       }
     });
 
-    return result.count > 0; // Jika 0, berarti terjadi race condition atau sudah diubah
+    return result.count > 0; // If 0, it means a race condition occurred or it was already modified
   }
 }

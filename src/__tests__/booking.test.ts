@@ -18,7 +18,7 @@ describe('Booking API & Concurrency Guard', () => {
   let landlordId = '';
 
   beforeAll(async () => {
-    // Ambil satu properti dari hasil seeding database untuk bahan test
+    // Get one property from the database seeding result for testing
     const property = await prisma.property.findFirst();
     if (!property) {
       throw new Error('Database is empty. Please run "npm run setup" first to seed data.');
@@ -56,12 +56,12 @@ describe('Booking API & Concurrency Guard', () => {
     expect(res.body.data.id).toBeDefined();
     expect(res.body.data.status).toBe('PENDING');
 
-    createdBookingId = res.body.data.id; // Simpan ID untuk tes selanjutnya
+    createdBookingId = res.body.data.id; // Save ID for next tests
   });
 
   it('PATCH /api/booking-requests/:id - TANTANGAN A: Simultaneous Race Conditions Test', async () => {
-    // Mengirim 3 request PATCH secara BERSAMAAN menggunakan Promise.all
-    // mensimulasikan Race Condition, di mana sistem harus memblokir 2 request dan meloloskan 1.
+    // Send 3 PATCH requests CONCURRENTLY using Promise.all
+    // simulating Race Condition, where the system must block 2 requests and pass 1.
     const req1 = request(app)
       .patch(`/api/booking-requests/${createdBookingId}`)
       .set('x-landlord-id', landlordId)
@@ -79,10 +79,10 @@ describe('Booking API & Concurrency Guard', () => {
 
     const responses = await Promise.all([req1, req2, req3]);
 
-    // ekspektasi satu response bernilai 200 (Berhasil memproses PENDING -> ACCEPT/REJECT)
+    // expect one response to be 200 (Successfully processed PENDING -> ACCEPT/REJECT)
     const successCount = responses.filter(r => r.status === 200).length;
 
-    // sisanya harus bernilai 409 (Conflict/Optimistic Locking) atau 400 (Bad Request/Expired)
+    // the rest must be 409 (Conflict/Optimistic Locking) or 400 (Bad Request/Expired)
     const conflictCount = responses.filter(r => r.status === 409 || r.status === 400).length;
 
     expect(successCount).toBe(1);

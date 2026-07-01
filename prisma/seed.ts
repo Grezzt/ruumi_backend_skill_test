@@ -8,12 +8,12 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Fungsi utilitas untuk memilih item acak dari array
+// Utility function to get a random item from an array
 function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Fungsi utilitas untuk mendapatkan tanggal acak di masa depan
+// Utility function to get a random future date
 function getRandomDate(startDaysFromNow: number, endDaysFromNow: number): Date {
   const date = new Date();
   const days = startDaysFromNow + Math.random() * (endDaysFromNow - startDaysFromNow);
@@ -28,31 +28,31 @@ const PROPERTY_LOCATIONS = ['Sudirman', 'Kemang', 'Senayan', 'Menteng', 'Kuninga
 const STATUSES: BookingStatus[] = ['PENDING', 'ACCEPT', 'REJECT', 'EXPIRED'];
 
 async function main() {
-  console.log('Menghapus data lama...');
+  console.log('Clearing old data...');
   await prisma.bookingRequest.deleteMany();
   await prisma.property.deleteMany();
 
-  console.log('Membuat 20 Property secara acak...');
+  console.log('Creating 20 random properties...');
   const properties = [];
   for (let i = 1; i <= 20; i++) {
     const property = await prisma.property.create({
       data: {
         name: `${getRandomItem(PROPERTY_ADJECTIVES)} ${getRandomItem(PROPERTY_TYPES)} in ${getRandomItem(PROPERTY_LOCATIONS)}`,
-        landlordId: `landlord-${Math.floor(Math.random() * 5) + 1}`, // landlord-1 sampai landlord-5
+        landlordId: `landlord-${Math.floor(Math.random() * 5) + 1}`, // landlord-1 to landlord-5
       }
     });
     properties.push(property);
   }
-  console.log(`Berhasil membuat 20 Property.`);
+  console.log(`Successfully created 20 properties.`);
 
-  console.log('Membuat 40 Booking Request secara acak...');
+  console.log('Creating 40 random booking requests...');
   let pendingCount = 0;
   for (let i = 1; i <= 40; i++) {
     const property = getRandomItem(properties);
-    const tenantNum = Math.floor(Math.random() * 20) + 1; // tenant-1 sampai tenant-20
+    const tenantNum = Math.floor(Math.random() * 20) + 1; // tenant-1 to tenant-20
     const status = getRandomItem(STATUSES);
     
-    // Pastikan kita memiliki setidaknya beberapa status PENDING untuk di-test nantinya
+    // Ensure we have at least a few PENDING statuses for testing
     const finalStatus = (i <= 10) ? 'PENDING' : status; 
     if (finalStatus === 'PENDING') pendingCount++;
 
@@ -61,17 +61,17 @@ async function main() {
         propertyId: property.id,
         tenantId: `tenant-${tenantNum}`,
         landlordId: property.landlordId,
-        tenantName: `Penyewa Dummy ${tenantNum}`,
+        tenantName: `Dummy Tenant ${tenantNum}`,
         tenantEmail: `tenant${tenantNum}@example.com`,
-        requestedViewingAt: getRandomDate(1, 14), // Jadwal survei 1-14 hari ke depan
+        requestedViewingAt: getRandomDate(1, 14), // Viewing schedule 1-14 days ahead
         status: finalStatus,
-        expiresAt: getRandomDate(0, 1), // Kadaluwarsa dalam 0-1 hari
+        expiresAt: getRandomDate(0, 1), // Expires in 0-1 days
       }
     });
   }
   
-  console.log(`Berhasil membuat 40 Booking Request (${pendingCount} di antaranya berstatus PENDING).`);
-  console.log('Seeding selesai!');
+  console.log(`Successfully created 40 booking requests (${pendingCount} of which are PENDING).`);
+  console.log('Seeding completed!');
 }
 
 main()

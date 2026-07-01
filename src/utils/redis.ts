@@ -6,5 +6,5 @@ const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
 export const redisConnection = new Redis({
   host: redisHost,
   port: redisPort,
-  maxRetriesPerRequest: null, // Diwajibkan oleh BullMQ untuk koneksi Worker/Queue
+  maxRetriesPerRequest: null, // Required by BullMQ for Worker/Queue connection
 });

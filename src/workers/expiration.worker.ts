@@ -6,7 +6,7 @@ import { generateEmailTemplate } from '../utils/emailTemplate';
 
 export const expirationWorker = new Worker('expiration-queue', async (job: Job) => {
   const { bookingId } = job.data;
-  console.log(`[ExpirationWorker] Memeriksa kedaluwarsa untuk Booking ID: ${bookingId}`);
+  console.log(`[ExpirationWorker] Checking expiration for Booking ID: ${bookingId}`);
 
   const updatedBooking = await prisma.$transaction(async (tx) => {
     const booking = await tx.bookingRequest.findUnique({
@@ -15,13 +15,13 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
     });
 
     if (!booking) {
-      console.warn(`[ExpirationWorker] Booking ID ${bookingId} tidak ditemukan.`);
+      console.warn(`[ExpirationWorker] Booking ID ${bookingId} not found.`);
       return null;
     }
 
     if (booking.status !== 'PENDING') {
-      console.log(`[ExpirationWorker] Booking ID ${bookingId} sudah berstatus ${booking.status}. Batal diekspirasi.`);
-      return null; // Tidak perlu kedaluwarsa ketika statusnya sudah di update landlord
+      console.log(`[ExpirationWorker] Booking ID ${bookingId} is already ${booking.status}. Expiration cancelled.`);
+      return null; // No need to expire when the status is already updated by the landlord
     }
 
     const expiredBooking = await tx.bookingRequest.update({
@@ -34,7 +34,7 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
   });
 
   if (updatedBooking) {
-    console.log(`[ExpirationWorker] Booking ID ${bookingId} resmi menjadi EXPIRED.`);
+    console.log(`[ExpirationWorker] Booking ID ${bookingId} is now EXPIRED.`);
 
     const emailHtml = generateEmailTemplate(
       'Permintaan Sewa Expired',
@@ -58,6 +58,6 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
 
 expirationWorker.on('failed', (job, err) => {
   if (job) {
-    console.error(`[ExpirationWorker] Job ${job.id} gagal: ${err.message}`);
+    console.error(`[ExpirationWorker] Job ${job.id} failed: ${err.message}`);
   }
 });
