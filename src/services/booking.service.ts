@@ -3,6 +3,7 @@ import { BookingRepository } from '../repositories/booking.repository';
 import { prisma } from '../utils/db';
 import { sendEmailJob } from '../workers/email.queue';
 import { scheduleExpirationJob } from '../workers/expiration.queue';
+import { generateEmailTemplate } from '../utils/emailTemplate';
 
 const bookingRepo = new BookingRepository(prisma);
 
@@ -60,10 +61,21 @@ export class BookingService {
       expiresAt
     });
 
+    const emailHtml = generateEmailTemplate(
+      'Permintaan Sewa Baru',
+      `<p>Hi <b>${payload.tenantName}</b>,</p><p>Permintaan sewa Anda untuk properti telah masuk ke sistem kami. Pemilik properti (Landlord) memiliki waktu 24 jam untuk memberikan tanggapan sebelum permintaan ini otomatis dibatalkan.</p>`,
+      {
+        'ID Permintaan': booking.id,
+        'Properti': property.name,
+        'Tanggal Survey': new Date(payload.requestedViewingAt).toLocaleString('id-ID'),
+        'Kadaluwarsa Pada': expiresAt.toLocaleString('id-ID')
+      }
+    );
+
     await sendEmailJob(
       payload.tenantEmail,
-      'Booking Request Submitted',
-      `<p>Hi ${payload.tenantName},</p><p>Permintaan sewa Anda untuk properti <b>${property.name}</b> telah masuk. Landlord memiliki waktu 24 jam untuk merespons.</p>`
+      'Ruumi - Permintaan Sewa Diterima',
+      emailHtml
     );
 
     await scheduleExpirationJob(booking.id, delayMs);
@@ -98,10 +110,23 @@ export class BookingService {
       throw { code: 409, type: 'ERR_CONFLICT', message: 'Data conflict: The request has already been modified by another process' };
     }
 
+    const statusText = status === 'ACCEPT'
+      ? '<span style="color: #16a34a; font-weight: bold;">DISETUJUI (ACCEPT)</span>'
+      : '<span style="color: #dc2626; font-weight: bold;">DITOLAK (REJECT)</span>';
+
+    const emailHtml = generateEmailTemplate(
+      `Pembaruan Status Sewa`,
+      `<p>Hi <b>${request.tenantName}</b>,</p><p>Pemilik properti telah merespons permintaan sewa Anda. Status permintaan Anda saat ini adalah: ${statusText}.</p>`,
+      {
+        'ID Permintaan': request.id,
+        'Tanggal Survey': new Date(request.requestedViewingAt).toLocaleString('id-ID'),
+      }
+    );
+
     await sendEmailJob(
       request.tenantEmail,
-      `Booking Request ${status}`,
-      `<p>Hi ${request.tenantName},</p><p>Status permintaan sewa Anda saat ini adalah: <b>${status}</b>.</p>`
+      `Ruumi - Status Permintaan Sewa: ${status}`,
+      emailHtml
     );
 
     return { id, status };

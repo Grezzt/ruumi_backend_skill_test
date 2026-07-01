@@ -13,8 +13,11 @@ export const createBookingSchema = z.object({
 
 export const updateBookingSchema = z.object({
   body: z.object({
-    status: z.enum(['ACCEPT', 'REJECT'], {
-      message: 'Status must be either ACCEPT or REJECT'
-    })
+    status: z.preprocess(
+      (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+      z.enum(['ACCEPT', 'REJECT'], {
+        message: 'Status must be either ACCEPT or REJECT'
+      })
+    )
   })
 });

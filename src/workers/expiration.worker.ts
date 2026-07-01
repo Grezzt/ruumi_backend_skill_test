@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../utils/redis';
 import { prisma } from '../utils/db';
 import { sendEmailJob } from './email.queue';
+import { generateEmailTemplate } from '../utils/emailTemplate';
 
 export const expirationWorker = new Worker('expiration-queue', async (job: Job) => {
   const { bookingId } = job.data;
@@ -9,7 +10,8 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
 
   const updatedBooking = await prisma.$transaction(async (tx) => {
     const booking = await tx.bookingRequest.findUnique({
-      where: { id: bookingId }
+      where: { id: bookingId },
+      include: { property: true }
     });
 
     if (!booking) {
@@ -24,7 +26,8 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
 
     const expiredBooking = await tx.bookingRequest.update({
       where: { id: bookingId },
-      data: { status: 'EXPIRED', version: { increment: 1 } }
+      data: { status: 'EXPIRED', version: { increment: 1 } },
+      include: { property: true }
     });
 
     return expiredBooking;
@@ -33,10 +36,20 @@ export const expirationWorker = new Worker('expiration-queue', async (job: Job) 
   if (updatedBooking) {
     console.log(`[ExpirationWorker] Booking ID ${bookingId} resmi menjadi EXPIRED.`);
 
+    const emailHtml = generateEmailTemplate(
+      'Permintaan Sewa Expired',
+      `<p>Hi <b>${updatedBooking.tenantName}</b>,</p><p>Mohon maaf, permintaan sewa Anda telah <span style="color: #dc2626; font-weight: bold;">EXPIRED</span> karena belum mendapat tanggapan dari pemilik properti dalam batas waktu 24 jam.</p><p>Silakan mencoba untuk menghubungi pemilik properti lain atau mengajukan ulang permintaan Anda.</p>`,
+      {
+        'ID Permintaan': updatedBooking.id,
+        'Properti': updatedBooking.property.name,
+        'Tanggal Survey': new Date(updatedBooking.requestedViewingAt).toLocaleString('id-ID')
+      }
+    );
+
     await sendEmailJob(
       updatedBooking.tenantEmail,
-      'Booking Request Expired',
-      `<p>Hi ${updatedBooking.tenantName},</p><p>Mohon maaf, permintaan sewa Anda telah **kedaluwarsa (EXPIRED)** karena belum mendapat respons dari pemilik properti dalam jangka waktu 24 jam.</p>`
+      'Ruumi - Permintaan Sewa Expired',
+      emailHtml
     );
   }
 
